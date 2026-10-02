@@ -1,0 +1,2654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wispr Fish - Top-Down Voice Stealth Game</title>
+  <style>
+    /* ==========================================================================
+       WISPR FISH - STYLING & DESIGN SYSTEM
+       ========================================================================== */
+    :root {
+      --bg-dark: #07090e;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-border: rgba(56, 189, 248, 0.25);
+      --accent-cyan: #38bdf8;
+      --accent-teal: #14b8a6;
+      --accent-gold: #f59e0b;
+      --accent-crimson: #ef4444;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 15%, rgba(14, 116, 144, 0.18) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(88, 28, 135, 0.12) 0%, transparent 50%),
+        linear-gradient(180deg, #05070a 0%, #0b0f17 100%);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+
+    /* Container for Game & HUD */
+    #game-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    /* Header Bar */
+    header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 6px 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: #000;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #38bdf8, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .header-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-pill span.label {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-pill span.value {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    /* Main Canvas Box */
+    #canvas-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 960 / 600;
+      max-height: 600px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 
+        0 0 0 1px rgba(56, 189, 248, 0.2),
+        0 12px 40px rgba(0, 0, 0, 0.8),
+        0 0 30px rgba(14, 116, 144, 0.2);
+      background: #000;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Overlays (Title, Calibration, Win, Lose) */
+    .game-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 10, 18, 0.88);
+      backdrop-filter: blur(10px);
+      padding: 24px;
+      text-align: center;
+      z-index: 50;
+      transition: opacity 0.3s ease;
+    }
+
+    .game-overlay.hidden {
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+    }
+
+    .overlay-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 580px;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    /* Microphone Preview Bar in Overlays */
+    .mic-test-container {
+      width: 100%;
+      max-width: 480px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    .mic-test-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+
+    .mic-bar-track {
+      width: 100%;
+      height: 14px;
+      background: rgba(30, 41, 59, 0.9);
+      border-radius: 7px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mic-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981 0%, #38bdf8 55%, #f59e0b 80%, #ef4444 100%);
+      border-radius: 7px;
+      transition: width 0.06s ease;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .mic-threshold-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ef4444;
+      left: 78%;
+      box-shadow: 0 0 6px #ef4444;
+    }
+
+    .mic-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Buttons */
+    .btn {
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 12px 32px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(37, 99, 235, 0.6);
+      filter: brightness(1.1);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+      font-size: 0.9rem;
+      padding: 8px 18px;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(51, 65, 85, 0.9);
+    }
+
+    /* Calibration Screen Styling */
+    .calib-circle {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 3px solid var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 16px auto;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.3), inset 0 0 15px rgba(56, 189, 248, 0.2);
+      animation: pulseGlow 1.5s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+      to { box-shadow: 0 0 35px rgba(56, 189, 248, 0.6); }
+    }
+
+    /* Keybind Guide Box */
+    .instructions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      max-width: 520px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .instruction-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+    }
+
+    .instruction-card strong {
+      color: var(--accent-cyan);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    /* HUD Bar (Below Canvas) */
+    .hud-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .hud-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    }
+
+    .hud-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .hud-meter-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hud-meter-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 5px;
+      transition: width 0.06s ease;
+    }
+
+    .meter-noise {
+      background: linear-gradient(90deg, #10b981, #38bdf8 50%, #f59e0b 80%, #ef4444 100%);
+    }
+
+    .meter-spotted {
+      background: linear-gradient(90deg, #facc15, #f97316 60%, #ef4444 100%);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+
+    .dash-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #c084fc;
+    }
+
+    .dash-badge.ready {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #4ade80;
+    }
+
+    /* Decibel readout & Voice Navigation Badges */
+    .decibel-val {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .voice-cmd-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      transition: all 0.15s ease;
+    }
+
+    .voice-cmd-pill.active {
+      background: rgba(245, 158, 11, 0.3);
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+      transform: scale(1.05);
+    }
+
+    /* Picture-in-Picture Voice Video Box */
+    .video-pip-container {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 144px;
+      height: 108px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1.5px solid rgba(56, 189, 248, 0.4);
+      background: #000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 14px rgba(56, 189, 248, 0.3);
+      z-index: 40;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .video-pip-container.hidden {
+      display: none;
+    }
+
+    .video-pip-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror webcam */
+    }
+
+    .video-pip-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 5px 6px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, transparent 40%, rgba(0,0,0,0.75) 100%);
+      pointer-events: none;
+    }
+
+    .video-pip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      font-weight: 700;
+    }
+
+    .pip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+      display: inline-block;
+      margin-right: 4px;
+      animation: blinkDot 1s infinite;
+    }
+
+    @keyframes blinkDot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .pip-title {
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+    }
+
+    #pip-db-readout {
+      color: var(--accent-cyan);
+      font-family: monospace;
+    }
+
+    .video-pip-footer {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #facc15;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      text-align: center;
+    }
+
+    .speed-control-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .speed-btn {
+      flex: 1;
+      padding: 4px 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .speed-btn:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #fff;
+    }
+
+    .speed-btn.active-slow {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #10b981;
+      color: #34d399;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .speed-btn.active-normal {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: #38bdf8;
+      color: #7dd3fc;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    .speed-btn.active-fast {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: #f59e0b;
+      color: #fcd34d;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    }
+
+    .speed-btn.active-stop {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      color: #fca5a5;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    }
+
+    .hud-bar-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 0.85fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 860px) {
+      .hud-bar-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-wrapper">
+    <!-- Top Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">&#9670;</div>
+        <div>
+          <div class="brand-title">WISPR FISH</div>
+          <div class="brand-sub">Sound-Sensitive Top-Down Stealth Heist</div>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat-pill" title="Live Decibels">
+          <span class="label">DECIBELS</span>
+          <span class="value" id="hud-decibels">-60.0 dB</span>
+        </div>
+        <div class="stat-pill">
+          <span class="label">LEVEL</span>
+          <span class="value" id="hud-level-num">1 / 3</span>
+        </div>
+        <div class="stat-pill">
+          <span class="label">TIME</span>
+          <span class="value" id="hud-timer">00:00.0</span>
+        </div>
+        <div class="stat-pill">
+          <span class="label">BEST</span>
+          <span class="value" id="hud-best-time">--:--.-</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container">
+      <canvas id="gameCanvas" width="960" height="600"></canvas>
+
+      <!-- Picture-in-Picture Voice Video Preview -->
+      <div id="video-pip-container" class="video-pip-container hidden">
+        <video id="voice-webcam" autoplay playsinline muted></video>
+        <div class="video-pip-overlay">
+          <div class="video-pip-header">
+            <div><span class="pip-dot"></span><span class="pip-title">VOICE VIDEO</span></div>
+            <span id="pip-db-readout">-50 dB</span>
+          </div>
+          <div class="video-pip-footer">
+            <span id="pip-action-label">&#9650; STEER: FRONT</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay: Title / Start Screen -->
+      <div id="overlay-title" class="game-overlay">
+        <div class="overlay-title">WISPR FISH</div>
+        <p class="overlay-sub">
+          A sound-sensitive top-down stealth heist. Use your real voice to steer and swim hands-free! Whispering keeps you quiet and stealthy; speaking louder pushes you fast.
+        </p>
+
+        <!-- Live Volume Bar Preview Before Game Starts -->
+        <div class="mic-test-container">
+          <div class="mic-test-header">
+            <span>LIVE MICROPHONE INPUT</span>
+            <span id="title-mic-status" style="color: var(--accent-cyan)">Click Test Mic or Start</span>
+          </div>
+          <div class="mic-bar-track">
+            <div id="title-mic-bar" class="mic-bar-fill"></div>
+            <div class="mic-threshold-marker" title="Shout Dash Threshold"></div>
+          </div>
+          <div class="mic-hint">
+            <span>Silent / Whisper (&lt; -35 dB)</span>
+            <span>Speaking (&sim; -20 dB)</span>
+            <span style="color: #ef4444">Shout Burst! (&gt; -12 dB)</span>
+          </div>
+        </div>
+
+        <!-- Instructions Grid -->
+        <div class="instructions-grid">
+          <div class="instruction-card">
+            <strong>Voice Navigation & Speed (Hands-Free!)</strong>
+            Say &ldquo;Front&rdquo; to advance, &ldquo;Back&rdquo; to turn 180° &amp; reverse, &ldquo;Fast&rdquo; for sprint speed, &ldquo;Okay&rdquo; for stealth crawl, and &ldquo;Stop&rdquo; to halt!
+          </div>
+          <div class="instruction-card">
+            <strong>Exact Decibel Meter (dB)</strong>
+            Live dBFS &amp; dB SPL monitoring. Whispering keeps you safe; shouting boosts speed!
+          </div>
+          <div class="instruction-card">
+            <strong>Voice Video &amp; Pitch Steering</strong>
+            Toggle optional webcam video or steer with voice tone (Low = Left, High = Right).
+          </div>
+          <div class="instruction-card">
+            <strong>Guards &amp; Spotted Meter</strong>
+            Guards investigate sounds in your noise circle. Avoid their flashlight cones!
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; justify-content: center;">
+          <button id="btn-test-mic" class="btn btn-secondary">TEST MIC PREVIEW</button>
+          <button id="btn-toggle-video-title" class="btn btn-secondary">📷 ENABLE VOICE VIDEO</button>
+          <button id="btn-start" class="btn">START &amp; CALIBRATE</button>
+        </div>
+
+        <div class="sim-toggle">
+          <span>Mic Simulation Slider (for testing without physical mic):</span>
+          <input type="range" id="sim-volume-slider" class="sim-slider" min="0" max="1" step="0.02" value="0">
+          <span id="sim-val-label">0.00</span>
+        </div>
+      </div>
+
+      <!-- Overlay: 3-Second Calibration Screen -->
+      <div id="overlay-calibration" class="game-overlay hidden">
+        <div class="overlay-title" style="font-size: 1.4rem; opacity: 0.8; margin-bottom: 2px;">WISPR FISH</div>
+        <div class="overlay-title" style="font-size: 2rem; margin-bottom: 6px;">CALIBRATING MICROPHONE</div>
+        <p class="overlay-sub" style="margin-bottom: 8px;">
+          <strong>Shhh! Please stay completely quiet for 3 seconds.</strong><br>
+          We are measuring room background noise so ambient silence reads as 0 and a loud shout reads as 1.
+        </p>
+        <div id="calib-countdown" class="calib-circle">3</div>
+        <div class="mic-test-container" style="max-width: 400px; margin-bottom: 12px;">
+          <div class="mic-test-header">
+            <span>MEASURING AMBIENT FLOOR...</span>
+            <span id="calib-samples-count">Sampling...</span>
+          </div>
+          <div class="mic-bar-track">
+            <div id="calib-progress-bar" class="mic-bar-fill" style="width: 0%; background: var(--accent-cyan);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay: Lose / Caught Screen -->
+      <div id="overlay-lose" class="game-overlay hidden">
+        <div class="overlay-title" style="font-size: 1.4rem; opacity: 0.8; margin-bottom: 2px;">WISPR FISH</div>
+        <div class="overlay-title" style="color: #ef4444; text-shadow: 0 0 25px rgba(239, 68, 68, 0.6);">
+          DETECTED &amp; CAUGHT!
+        </div>
+        <p class="overlay-sub" id="lose-reason-text">
+          A guard spotted you in their flashlight beam. The mansion went into lockdown.
+        </p>
+        <div style="margin-bottom: 20px;">
+          <button id="btn-restart" class="btn" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">RETRY HEIST</button>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">
+          Tip: Press <kbd style="background: #1e293b; padding: 2px 6px; border-radius: 4px; border: 1px solid #475569;">R</kbd> or <kbd style="background: #1e293b; padding: 2px 6px; border-radius: 4px; border: 1px solid #475569;">Space</kbd> to quickly restart.
+        </p>
+      </div>
+
+      <!-- Overlay: Win Screen -->
+      <div id="overlay-win" class="game-overlay hidden">
+        <div class="overlay-title" style="font-size: 1.4rem; opacity: 0.8; margin-bottom: 2px;">WISPR FISH</div>
+        <div class="overlay-title" style="color: #10b981; text-shadow: 0 0 25px rgba(16, 185, 129, 0.6);">
+          HEIST COMPLETE!
+        </div>
+        <p class="overlay-sub">
+          You slipped through all three mansion wings, stole every royal treasure, and escaped into the night completely undetected!
+        </p>
+        <div class="mic-test-container" style="max-width: 360px; margin-bottom: 20px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">Total Infiltration Time:</span>
+            <strong id="win-time-val" style="color: var(--accent-cyan); font-family: monospace;">--:--.-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Best Recorded Time:</span>
+            <strong id="win-best-val" style="color: #f59e0b; font-family: monospace;">--:--.-</strong>
+          </div>
+          <div id="win-record-banner" style="display: none; margin-top: 10px; text-align: center; color: #10b981; font-weight: bold; font-size: 0.85rem;">
+            &#9733; NEW PERSONAL RECORD! &#9733;
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button id="btn-win-replay" class="btn">PLAY AGAIN</button>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 12px;">
+          Tip: Press <kbd style="background: #1e293b; padding: 2px 6px; border-radius: 4px; border: 1px solid #475569;">R</kbd> to restart anytime.
+        </p>
+      </div>
+    </div>
+
+    <!-- HUD Bar (Below Canvas) -->
+    <div class="hud-bar-grid">
+      <!-- 1. Decibels & Noise Level -->
+      <div class="hud-panel">
+        <div class="hud-label">
+          <span>DECIBELS &amp; NOISE</span>
+          <span id="hud-noise-status">Silent (Safe)</span>
+        </div>
+        <div style="font-size: 0.85rem; margin-bottom: 5px; font-weight: 700;">
+          <span id="hud-db-readout" class="decibel-val">-60.0 dBFS</span>
+          <span id="hud-db-spl" style="color: var(--text-muted); font-size: 0.72rem; margin-left: 4px;">(25 dB SPL)</span>
+        </div>
+        <div class="hud-meter-track">
+          <div id="hud-noise-fill" class="hud-meter-fill meter-noise"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;">
+          <span id="hud-db-floor">Room Floor: -- dB</span>
+          <span>Shout Dash: -12 dB</span>
+        </div>
+      </div>
+
+      <!-- 2. Hands-Free Voice Navigation & Speed -->
+      <div class="hud-panel">
+        <div class="hud-label">
+          <span>VOICE NAVIGATION</span>
+          <span id="hud-speed-badge" class="dash-badge">🛑 STOPPED</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <div style="font-size: 0.7rem; color: var(--text-muted);">
+            Voice: <em>&ldquo;Front&rdquo;, &ldquo;Back&rdquo;, &ldquo;Fast&rdquo;, &ldquo;Okay&rdquo;, &ldquo;Stop&rdquo;</em>
+          </div>
+          <span id="hud-voice-cmd" class="voice-cmd-pill">READY</span>
+        </div>
+        <div class="speed-control-group">
+          <button id="btn-speed-slow" class="speed-btn active-slow" title="Say 'okay' / 'slow' or click">🐢 OKAY (SLOW)</button>
+          <button id="btn-speed-fast" class="speed-btn" title="Say 'fast' or click">⚡ FAST</button>
+          <button id="btn-speed-front" class="speed-btn" title="Say 'front' or click">▲ FRONT</button>
+          <button id="btn-speed-back" class="speed-btn" title="Say 'back' or click">▼ BACK</button>
+          <button id="btn-speed-stop" class="speed-btn" title="Say 'stop' or click">🛑 STOP</button>
+        </div>
+      </div>
+
+      <!-- 3. Spotted Danger Meter -->
+      <div class="hud-panel">
+        <div class="hud-label">
+          <span>SPOTTED METER</span>
+          <span id="hud-spotted-pct">0%</span>
+        </div>
+        <div class="hud-meter-track" style="margin-top: 4px; margin-bottom: 6px;">
+          <div id="hud-spotted-fill" class="hud-meter-fill meter-spotted"></div>
+        </div>
+        <div style="font-size: 0.7rem; color: var(--text-muted);">
+          Avoid guards' flashlight cones!
+        </div>
+      </div>
+
+      <!-- 4. Heist Objective & Video Toggle -->
+      <div class="hud-panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="hud-label">
+          <span>MISSION OBJECTIVE</span>
+          <span id="hud-dash-status" class="dash-badge ready">SHOUT DASH READY</span>
+        </div>
+        <div id="hud-objective-text" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 4px;">
+          &#9670; Steal the Royal Relic
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button id="btn-toggle-video" class="btn btn-secondary" style="margin: 0; padding: 4px 8px; font-size: 0.7rem; width: 100%;">
+            📷 TOGGLE VOICE VIDEO
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       WISPR FISH JAVASCRIPT GAME ENGINE
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       1. GLOBAL CONSTANTS, GAME STATES & CONFIG
+       ========================================================================== */
+    const GAME_STATES = {
+      TITLE: 'TITLE',
+      CALIBRATING: 'CALIBRATING',
+      PLAYING: 'PLAYING',
+      LEVEL_TRANSITION: 'LEVEL_TRANSITION',
+      LOSE: 'LOSE',
+      WIN: 'WIN'
+    };
+
+    const CANVAS_WIDTH = 960;
+    const CANVAS_HEIGHT = 600;
+
+    // Game state tracking
+    let gameState = GAME_STATES.TITLE;
+    let currentLevelIndex = 0; // 0, 1, 2 for Levels 1, 2, 3
+    let gameStartTime = 0;
+    let gameElapsedTime = 0;
+    let bestTimeMs = parseFloat(localStorage.getItem('wispr_fish_best_time')) || null;
+
+    // Keys state
+    const keys = {
+      ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+      KeyW: false, KeyS: false, KeyA: false, KeyD: false,
+      KeyR: false, Space: false
+    };
+
+    // Canvas elements & contexts
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // DOM HUD elements
+    const hudLevelNum = document.getElementById('hud-level-num');
+    const hudTimer = document.getElementById('hud-timer');
+    const hudBestTime = document.getElementById('hud-best-time');
+    const hudNoiseFill = document.getElementById('hud-noise-fill');
+    const hudNoiseStatus = document.getElementById('hud-noise-status');
+    const hudSpottedFill = document.getElementById('hud-spotted-fill');
+    const hudSpottedPct = document.getElementById('hud-spotted-pct');
+    const hudDashStatus = document.getElementById('hud-dash-status');
+    const hudObjectiveText = document.getElementById('hud-objective-text');
+
+    // Decibel & Voice Navigation HUD elements
+    const hudDecibels = document.getElementById('hud-decibels');
+    const hudDbReadout = document.getElementById('hud-db-readout');
+    const hudDbSpl = document.getElementById('hud-db-spl');
+    const hudDbFloor = document.getElementById('hud-db-floor');
+    const hudVoiceCmd = document.getElementById('hud-voice-cmd');
+    const hudPitchFreq = document.getElementById('hud-pitch-freq');
+    const hudNavHint = document.getElementById('hud-nav-hint');
+
+    // Interactive Speed Pace & Direction Buttons & Badges
+    const hudSpeedBadge = document.getElementById('hud-speed-badge');
+    const btnSpeedSlow = document.getElementById('btn-speed-slow');
+    const btnSpeedFast = document.getElementById('btn-speed-fast');
+    const btnSpeedFront = document.getElementById('btn-speed-front');
+    const btnSpeedBack = document.getElementById('btn-speed-back');
+    const btnSpeedStop = document.getElementById('btn-speed-stop');
+
+    // Picture-in-Picture Webcam Video elements
+    const pipDbReadout = document.getElementById('pip-db-readout');
+    const pipActionLabel = document.getElementById('pip-action-label');
+    const videoPipContainer = document.getElementById('video-pip-container');
+    const voiceWebcam = document.getElementById('voice-webcam');
+    const btnToggleVideo = document.getElementById('btn-toggle-video');
+    const btnToggleVideoTitle = document.getElementById('btn-toggle-video-title');
+
+    // DOM Overlays & Buttons
+    const overlayTitle = document.getElementById('overlay-title');
+    const overlayCalibration = document.getElementById('overlay-calibration');
+    const overlayLose = document.getElementById('overlay-lose');
+    const overlayWin = document.getElementById('overlay-win');
+
+    const titleMicBar = document.getElementById('title-mic-bar');
+    const titleMicStatus = document.getElementById('title-mic-status');
+    const calibCountdown = document.getElementById('calib-countdown');
+    const calibProgressBar = document.getElementById('calib-progress-bar');
+    const calibSamplesCount = document.getElementById('calib-samples-count');
+
+    const btnStart = document.getElementById('btn-start');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnWinReplay = document.getElementById('btn-win-replay');
+
+    const simVolumeSlider = document.getElementById('sim-volume-slider');
+    const simValLabel = document.getElementById('sim-val-label');
+
+    /* ==========================================================================
+       2. AUDIO & MICROPHONE ANALYZER ENGINE
+       ========================================================================== */
+    let audioCtx = null;
+    let micStream = null;
+    let analyserNode = null;
+    let audioDataArray = null;
+
+    // Decibels & Frequency State
+    let rawMicVolume = 0;
+    let smoothedVolume = 0; // Lerped volume to prevent jitter
+    let currentDbfs = -90.0;
+    let smoothedDbfs = -90.0;
+    let currentSpl = 25;
+    let calibratedFloorDbfs = -55.0; // Room background noise floor in dBFS
+    let calibratedCeilingDbfs = -12.0; // Loud volume threshold in dBFS
+    let dominantPitchHz = 0;
+    let dominantAmp = 0;
+
+    // Hands-Free Voice Navigation & Speed Modes
+    // Pace: 'SLOW' (default/okay: stealth crawl 0.95px) or 'FAST' (learned sprint 3.6px)
+    let speedPace = 'SLOW';
+    let isMoving = false; // Starts false (STOP) so thief never auto-moves
+    let currentDirection = 'FRONT'; // 'FRONT', 'BACK', 'LEFT', 'RIGHT'
+    let lastVoiceCommand = 'READY';
+    let voiceCmdActiveTimer = 0;
+    let lastTurnTimestamp = 0; // Debounce turns against interim speech repeats
+    let speechRecognizer = null;
+    let isVoiceDriveEnabled = true;
+
+    // Webcam Video State ("based on the voice video")
+    let webcamStream = null;
+    let motionCanvas = null;
+    let motionCtx = null;
+    let prevVideoFrame = null;
+    let videoMotionSteer = 'FRONT';
+
+    let calibratedCeiling = 0.65; // Volume at which input reaches 1.0 (loud shout)
+    let scaledLoudness = 0; // Scaled 0.0 to 1.0 (room silence = 0, shout = 1)
+
+    // Calibration state
+    let isCalibrating = false;
+    let calibStartTime = 0;
+    const CALIBRATION_DURATION_MS = 3000;
+    let calibrationSamples = [];
+
+    // Shout Dash volume detector
+    let prevVolume = 0;
+    let shoutDashCooldown = 0; // Cooldown in frames
+    let shoutDashActive = 0; // Active speed boost frames
+
+    // Minimal Quiet Procedural SFX using Web Audio
+    function playSfx(type) {
+      if (!audioCtx) return;
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'step') {
+          // Extremely quiet soft click
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.04);
+          gain.gain.setValueAtTime(0.015, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        } else if (type === 'alert') {
+          // Soft subtle alert chirp when guard notices sound
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(540, now + 0.12);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'loot') {
+          // Soft melodic chime on pickup
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'dash') {
+          // Subtle airy woosh for shout dash
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(80, now + 0.22);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'win') {
+          // Soft gentle triumph arpeggio
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(554.37, now + 0.1);
+          osc.frequency.setValueAtTime(659.25, now + 0.2);
+          osc.frequency.setValueAtTime(880, now + 0.3);
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else if (type === 'caught') {
+          // Low caught thud
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.exponentialRampToValueAtTime(35, now + 0.3);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        }
+      } catch (err) {
+        // Audio error silent fallback
+      }
+    }
+
+    // Initialize microphone with the exact requested constraints
+    async function initMicrophone() {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+
+        // Ask for access with echo cancellation, noise suppression, and auto gain control all turned on
+        const constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        };
+
+        micStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const sourceNode = audioCtx.createMediaStreamSource(micStream);
+
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 512;
+        // Analyzer smoothing to eliminate jitter
+        analyserNode.smoothingTimeConstant = 0.82;
+
+        sourceNode.connect(analyserNode);
+        audioDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+
+        titleMicStatus.innerText = "Microphone Active (Decibels & Voice Active)";
+        titleMicStatus.style.color = "#10b981";
+
+        // Initialize Native Speech Recognition for hands-free voice driving
+        initSpeechRecognition();
+
+        return true;
+      } catch (err) {
+        console.warn("Microphone access unavailable or denied. Using manual fallback simulation:", err);
+        titleMicStatus.innerText = "Mic Denied/Unavailable (Simulation Slider Active)";
+        titleMicStatus.style.color = "#f59e0b";
+        return false;
+      }
+    }
+
+    // =========================================================================
+    // Native Web Speech Recognition: "Front", "Left", "Right", "Fast", "Stop"
+    // =========================================================================
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.log("Web Speech API not supported in this browser; pitch and acoustic steering active.");
+        return;
+      }
+      try {
+        if (speechRecognizer) {
+          try { speechRecognizer.stop(); } catch(e){}
+        }
+        speechRecognizer = new SpeechRecognition();
+        speechRecognizer.continuous = true;
+        speechRecognizer.interimResults = true;
+        speechRecognizer.lang = 'en-US';
+
+        speechRecognizer.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript.toLowerCase();
+            handleSpokenCommand(transcript);
+          }
+        };
+
+        speechRecognizer.onerror = (e) => {
+          // Keep running continuously
+        };
+
+        speechRecognizer.onend = () => {
+          if (isVoiceDriveEnabled && (gameState === GAME_STATES.PLAYING || gameState === GAME_STATES.TITLE)) {
+            try { speechRecognizer.start(); } catch(e){}
+          }
+        };
+
+        speechRecognizer.start();
+      } catch (err) {
+        console.warn("Speech recognition warning:", err);
+      }
+    }
+
+    function handleSpokenCommand(transcript) {
+      // 1. Check Pace Modifier: "fast" is learned, "okay" / "slow" returns to slow
+      if (transcript.includes('fast') || transcript.includes('faster') || transcript.includes('sprint') || transcript.includes('run') || transcript.includes('dash') || transcript.includes('speed') || transcript.includes('quick') || transcript.includes('rapid')) {
+        setSpeedPace('FAST');
+      } else if (transcript.includes('okay') || transcript.includes('ok') || transcript.includes('slow') || transcript.includes('slower') || transcript.includes('normal') || transcript.includes('steady') || transcript.includes('sneak') || transcript.includes('crawl') || transcript.includes('quiet') || transcript.includes('gentle') || transcript.includes('easy')) {
+        setSpeedPace('SLOW');
+      }
+
+      // 2. Check Direction & Movement commands: "stop", "back", "front", "left", "right"
+      if (transcript.includes('stop') || transcript.includes('wait') || transcript.includes('hold') || transcript.includes('halt') || transcript.includes('freeze') || transcript.includes('stay') || transcript.includes('pause') || transcript.includes('stand')) {
+        applyVoiceDirection('STOP');
+      } else if (transcript.includes('back') || transcript.includes('backward') || transcript.includes('backwards') || transcript.includes('reverse') || transcript.includes('turn around') || transcript.includes('retreat')) {
+        applyVoiceDirection('BACK');
+      } else if (transcript.includes('front') || transcript.includes('forward') || transcript.includes('ahead') || transcript.includes('straight') || transcript.includes('go') || transcript.includes('walk') || transcript.includes('medium') || transcript.includes('move') || transcript.includes('continue')) {
+        applyVoiceDirection('FRONT');
+      } else if (transcript.includes('left') || transcript.includes('west') || transcript.includes('port')) {
+        applyVoiceDirection('LEFT');
+      } else if (transcript.includes('right') || transcript.includes('east') || transcript.includes('starboard')) {
+        applyVoiceDirection('RIGHT');
+      } else if (transcript.includes('restart') || transcript.includes('retry')) {
+        if (gameState === GAME_STATES.LOSE || gameState === GAME_STATES.WIN) {
+          restartGame();
+        }
+      }
+    }
+
+    function applyVoiceDirection(cmd) {
+      const now = performance.now();
+      lastVoiceCommand = cmd;
+      voiceCmdActiveTimer = 50;
+
+      // Debounce turn angles to avoid rapid multiple triggers from interim speech results
+      if (cmd === 'BACK' || cmd === 'LEFT' || cmd === 'RIGHT') {
+        if (now - lastTurnTimestamp < 450) {
+          return;
+        }
+        lastTurnTimestamp = now;
+      }
+
+      if (cmd === 'FRONT') {
+        isMoving = true;
+        currentDirection = 'FRONT';
+      } else if (cmd === 'BACK') {
+        isMoving = true;
+        currentDirection = 'BACK';
+        // Turn around 180 degrees to head back / away from danger
+        player.angle = (player.angle + Math.PI) % (Math.PI * 2);
+      } else if (cmd === 'LEFT') {
+        isMoving = true;
+        currentDirection = 'LEFT';
+        player.angle -= Math.PI / 2; // turn left 90 degrees
+      } else if (cmd === 'RIGHT') {
+        isMoving = true;
+        currentDirection = 'RIGHT';
+        player.angle += Math.PI / 2; // turn right 90 degrees
+      } else if (cmd === 'STOP') {
+        isMoving = false;
+        currentDirection = 'STOP';
+      }
+
+      updateSpeedUI();
+    }
+
+    function setSpeedPace(pace) {
+      speedPace = pace;
+      lastVoiceCommand = pace === 'FAST' ? '⚡ FAST PACE' : '🐢 OKAY (SLOW)';
+      voiceCmdActiveTimer = 50;
+      updateSpeedUI();
+    }
+
+    function updateSpeedUI() {
+      if (hudVoiceCmd) {
+        hudVoiceCmd.innerText = lastVoiceCommand;
+        hudVoiceCmd.classList.add('active');
+      }
+      if (pipActionLabel) {
+        pipActionLabel.innerText = isMoving ? `${currentDirection} (${speedPace})` : 'STOPPED';
+      }
+
+      // Update HUD buttons highlighting
+      if (btnSpeedSlow) btnSpeedSlow.className = 'speed-btn' + (speedPace === 'SLOW' ? ' active-slow' : '');
+      if (btnSpeedFast) btnSpeedFast.className = 'speed-btn' + (speedPace === 'FAST' ? ' active-fast' : '');
+      if (btnSpeedFront) btnSpeedFront.className = 'speed-btn' + (isMoving && currentDirection === 'FRONT' ? ' active-normal' : '');
+      if (btnSpeedBack) btnSpeedBack.className = 'speed-btn' + (isMoving && currentDirection === 'BACK' ? ' active-normal' : '');
+      if (btnSpeedStop) btnSpeedStop.className = 'speed-btn' + (!isMoving ? ' active-stop' : '');
+
+      if (hudSpeedBadge) {
+        if (!isMoving) {
+          hudSpeedBadge.className = 'dash-badge';
+          hudSpeedBadge.style.background = 'rgba(239, 68, 68, 0.25)';
+          hudSpeedBadge.style.color = '#fca5a5';
+          hudSpeedBadge.style.borderColor = '#ef4444';
+          hudSpeedBadge.innerText = '🛑 STOPPED';
+        } else if (speedPace === 'SLOW') {
+          hudSpeedBadge.className = 'dash-badge';
+          hudSpeedBadge.style.background = 'rgba(16, 185, 129, 0.25)';
+          hudSpeedBadge.style.color = '#34d399';
+          hudSpeedBadge.style.borderColor = '#10b981';
+          hudSpeedBadge.innerText = `🐢 ${currentDirection} (SLOW)`;
+        } else if (speedPace === 'FAST') {
+          hudSpeedBadge.className = 'dash-badge';
+          hudSpeedBadge.style.background = 'rgba(245, 158, 11, 0.25)';
+          hudSpeedBadge.style.color = '#fcd34d';
+          hudSpeedBadge.style.borderColor = '#f59e0b';
+          hudSpeedBadge.innerText = `⚡ ${currentDirection} (FAST)`;
+        }
+      }
+    }
+
+    // =========================================================================
+    // Webcam Video Stream & Motion Engine ("based on the voice video")
+    // =========================================================================
+    async function toggleWebcamVideo() {
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(t => t.stop());
+        webcamStream = null;
+        if (voiceWebcam) voiceWebcam.srcObject = null;
+        if (videoPipContainer) videoPipContainer.classList.add('hidden');
+        if (btnToggleVideo) btnToggleVideo.innerText = "📷 ENABLE VOICE VIDEO";
+        if (btnToggleVideoTitle) btnToggleVideoTitle.innerText = "📷 ENABLE VOICE VIDEO";
+        return false;
+      } else {
+        try {
+          webcamStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 320, height: 240, frameRate: 15 }
+          });
+          if (voiceWebcam) {
+            voiceWebcam.srcObject = webcamStream;
+          }
+          if (videoPipContainer) videoPipContainer.classList.remove('hidden');
+          if (btnToggleVideo) btnToggleVideo.innerText = "📷 DISABLE VOICE VIDEO";
+          if (btnToggleVideoTitle) btnToggleVideoTitle.innerText = "📷 DISABLE VOICE VIDEO";
+          return true;
+        } catch (err) {
+          console.warn("Webcam access error:", err);
+          alert("Webcam video not available. Voice controls remain 100% active!");
+          return false;
+        }
+      }
+    }
+
+    function updateVideoMotion() {
+      if (!webcamStream || !voiceWebcam || voiceWebcam.readyState < 2) return;
+      if (!motionCanvas) {
+        motionCanvas = document.createElement('canvas');
+        motionCanvas.width = 40;
+        motionCanvas.height = 30;
+        motionCtx = motionCanvas.getContext('2d');
+      }
+
+      motionCtx.drawImage(voiceWebcam, 0, 0, 40, 30);
+      const frame = motionCtx.getImageData(0, 0, 40, 30);
+      const data = frame.data;
+
+      if (prevVideoFrame) {
+        let leftMotion = 0;
+        let rightMotion = 0;
+
+        for (let y = 0; y < 30; y++) {
+          for (let x = 0; x < 40; x++) {
+            const idx = (y * 40 + x) * 4;
+            const curr = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+            const prev = (prevVideoFrame[idx] + prevVideoFrame[idx+1] + prevVideoFrame[idx+2]) / 3;
+            const diff = Math.abs(curr - prev);
+
+            if (diff > 16) {
+              if (x < 20) leftMotion += diff;
+              else rightMotion += diff;
+            }
+          }
+        }
+
+        // Steer player based on head/body movement in video frame
+        // Mirror: moving head left shows motion on right side of raw camera feed
+        if (rightMotion > leftMotion * 1.75 && rightMotion > 500) {
+          player.angle -= 0.035; // steer left
+          videoMotionSteer = 'LEFT';
+          if (pipActionLabel) pipActionLabel.innerText = "VIDEO STEER: LEFT";
+        } else if (leftMotion > rightMotion * 1.75 && leftMotion > 500) {
+          player.angle += 0.035; // steer right
+          videoMotionSteer = 'RIGHT';
+          if (pipActionLabel) pipActionLabel.innerText = "VIDEO STEER: RIGHT";
+        } else {
+          videoMotionSteer = 'FRONT';
+        }
+      }
+
+      prevVideoFrame = new Uint8ClampedArray(data);
+    }
+
+    // Process audio input every frame: calculates exact Decibels & Pitch
+    function updateAudioAnalysis() {
+      let currentSample = 0;
+      let rawDb = -90.0;
+      dominantPitchHz = 0;
+
+      if (analyserNode && audioDataArray) {
+        analyserNode.getByteFrequencyData(audioDataArray);
+
+        let sumSquares = 0;
+        let maxAmp = 0;
+        let peakBin = 0;
+        const binSize = (audioCtx ? audioCtx.sampleRate : 44100) / analyserNode.fftSize;
+        const minBin = Math.max(1, Math.floor(80 / binSize));
+        const maxBin = Math.min(audioDataArray.length - 1, Math.floor(900 / binSize));
+
+        for (let i = 0; i < audioDataArray.length; i++) {
+          const normalized = audioDataArray[i] / 255;
+          sumSquares += normalized * normalized;
+
+          // Frequency detection in human voice pitch range
+          if (i >= minBin && i <= maxBin) {
+            if (audioDataArray[i] > maxAmp) {
+              maxAmp = audioDataArray[i];
+              peakBin = i;
+            }
+          }
+        }
+
+        currentSample = Math.sqrt(sumSquares / audioDataArray.length);
+        dominantAmp = maxAmp;
+        dominantPitchHz = Math.round(peakBin * binSize);
+
+        // Compute exact decibels relative to full scale (dBFS)
+        if (currentSample > 0.0001) {
+          rawDb = 20 * Math.log10(currentSample);
+        } else {
+          rawDb = -90.0;
+        }
+      }
+
+      // Simulation slider contribution (for testing without physical mic)
+      const simVal = parseFloat(simVolumeSlider.value) || 0;
+      if (simVal > 0) {
+        currentSample = Math.max(currentSample, simVal);
+        rawDb = Math.max(rawDb, -70.0 + (simVal * 70.0));
+      }
+
+      rawMicVolume = currentSample;
+      currentDbfs = Math.max(-90.0, Math.min(0, rawDb));
+      currentSpl = Math.round(25 + ((currentDbfs + 90) / 90) * 75);
+
+      // Smooth volume & decibels
+      smoothedVolume += (rawMicVolume - smoothedVolume) * 0.18;
+      smoothedDbfs += (currentDbfs - smoothedDbfs) * 0.18;
+
+      // Calibration sampling in decibels
+      if (isCalibrating) {
+        calibrationSamples.push(smoothedDbfs);
+      }
+
+      // Scaled Loudness from 0.0 to 1.0 based on calibrated room floor decibels
+      const floorDb = calibratedFloorDbfs;
+      const ceilingDb = Math.max(floorDb + 25, calibratedCeilingDbfs);
+      scaledLoudness = (smoothedDbfs - floorDb) / (ceilingDb - floorDb);
+      scaledLoudness = Math.max(0, Math.min(1, scaledLoudness));
+
+      // Check for Shout Dash trigger: sudden loud burst or volume > shout threshold
+      const deltaVol = scaledLoudness - prevVolume;
+      const isBurst = (scaledLoudness >= 0.82) || (deltaVol > 0.35 && scaledLoudness > 0.65) || (smoothedDbfs >= -12.0);
+
+      if (isBurst && shoutDashCooldown <= 0 && gameState === GAME_STATES.PLAYING) {
+        triggerShoutDash();
+      }
+
+      prevVolume = scaledLoudness;
+
+      // Pitch-based continuous steering (when vocalizing hands-free)
+      if (scaledLoudness > 0.12 && dominantAmp > 40) {
+        if (dominantPitchHz > 0 && dominantPitchHz < 190) {
+          // Deep hum / low tone -> Curve Left
+          player.angle -= 0.035;
+          if (hudPitchFreq) hudPitchFreq.innerText = `Pitch: ${dominantPitchHz}Hz (Turn Left)`;
+        } else if (dominantPitchHz > 380) {
+          // Whistle / high tone -> Curve Right
+          player.angle += 0.035;
+          if (hudPitchFreq) hudPitchFreq.innerText = `Pitch: ${dominantPitchHz}Hz (Turn Right)`;
+        } else if (dominantPitchHz >= 190 && dominantPitchHz <= 380) {
+          if (hudPitchFreq) hudPitchFreq.innerText = `Pitch: ${dominantPitchHz}Hz (Front)`;
+        }
+      } else {
+        if (hudPitchFreq) hudPitchFreq.innerText = `Voice Throttle Ready`;
+      }
+
+      // Update Webcam video motion if active
+      if (webcamStream) {
+        updateVideoMotion();
+      }
+    }
+
+    function triggerShoutDash() {
+      shoutDashActive = 24; // 24 frames of burst speed (~0.4s)
+      shoutDashCooldown = 120; // 2 seconds cooldown
+      playSfx('dash');
+
+      // Visual acoustic burst shockwave
+      spawnShockwave(player.x, player.y, 400);
+    }
+
+    /* ==========================================================================
+       3. GEOMETRY, MATH & RAYCASTING UTILITIES
+       ========================================================================== */
+    function distance(x1, y1, x2, y2) {
+      return Math.hypot(x2 - x1, y2 - y1);
+    }
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    // Line segment intersection test
+    function lineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+      const denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+      if (denom === 0) return null;
+
+      const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+      const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+
+      if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+        return {
+          x: x1 + ua * (x2 - x1),
+          y: y1 + ua * (y2 - y1),
+          param: ua
+        };
+      }
+      return null;
+    }
+
+    // Check if line from (x1, y1) to (x2, y2) intersects any wall
+    function lineIntersectsWalls(x1, y1, x2, y2, walls) {
+      for (const wall of walls) {
+        // Wall box edges
+        const left = wall.x, right = wall.x + wall.w, top = wall.y, bottom = wall.y + wall.h;
+        if (lineIntersection(x1, y1, x2, y2, left, top, right, top)) return true;
+        if (lineIntersection(x1, y1, x2, y2, right, top, right, bottom)) return true;
+        if (lineIntersection(x1, y1, x2, y2, right, bottom, left, bottom)) return true;
+        if (lineIntersection(x1, y1, x2, y2, left, bottom, left, top)) return true;
+      }
+      return false;
+    }
+
+    // Circle vs Axis-Aligned Bounding Box (AABB) collision and resolution
+    function resolveCircleBoxCollision(circle, box) {
+      const closestX = clamp(circle.x, box.x, box.x + box.w);
+      const closestY = clamp(circle.y, box.y, box.y + box.h);
+      const distX = circle.x - closestX;
+      const distY = circle.y - closestY;
+      const distSquared = distX * distX + distY * distY;
+
+      if (distSquared < circle.radius * circle.radius) {
+        const d = Math.sqrt(distSquared);
+        if (d === 0) {
+          // Edge case: directly inside center
+          circle.x += circle.radius;
+          return;
+        }
+        const overlap = circle.radius - d;
+        circle.x += (distX / d) * overlap;
+        circle.y += (distY / d) * overlap;
+      }
+    }
+
+    /* ==========================================================================
+       4. GAME ENTITIES (PLAYER, GUARD, LOOT, EXIT)
+       ========================================================================== */
+    const player = {
+      x: 100,
+      y: 500,
+      radius: 14,
+      angle: 0,
+      baseSpeed: 2.7,
+      noiseRadius: 20, // dynamically grows with microphone loudness
+      spottedMeter: 0, // 0 to 1. If 1, game over
+      swimAnim: 0,
+      reset(x, y) {
+        this.x = x;
+        this.y = y;
+        this.angle = 0;
+        this.noiseRadius = 20;
+        this.spottedMeter = 0;
+        this.swimAnim = 0;
+      }
+    };
+
+    class Guard {
+      constructor(waypoints, speed = 1.35) {
+        this.waypoints = waypoints;
+        this.currentWaypointIndex = 0;
+        this.x = waypoints[0].x;
+        this.y = waypoints[0].y;
+        this.radius = 16;
+        this.angle = 0;
+        this.speed = speed;
+        this.investigateSpeed = speed * 1.5;
+
+        // States: 'PATROL', 'INVESTIGATING', 'SEARCHING'
+        this.state = 'PATROL';
+        this.investigateTarget = null;
+        this.searchTimer = 0; // frames to look around at noise origin
+        this.visionDistance = 210;
+        this.visionAngle = 65 * (Math.PI / 180); // 65-degree cone
+        this.alertPulse = 0;
+        this.lookSweep = 0;
+      }
+
+      update(currentWalls) {
+        this.alertPulse += 0.08;
+
+        if (this.state === 'PATROL') {
+          const target = this.waypoints[this.currentWaypointIndex];
+          const dist = distance(this.x, this.y, target.x, target.y);
+
+          if (dist < 6) {
+            this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.waypoints.length;
+          } else {
+            const targetAngle = Math.atan2(target.y - this.y, target.x - this.x);
+            this.rotateTowards(targetAngle, 0.08);
+            this.moveForward(this.speed, currentWalls);
+          }
+        } 
+        else if (this.state === 'INVESTIGATING') {
+          if (!this.investigateTarget) {
+            this.state = 'PATROL';
+            return;
+          }
+          const dist = distance(this.x, this.y, this.investigateTarget.x, this.investigateTarget.y);
+          if (dist < 18) {
+            // Reached noise origin! Begin searching
+            this.state = 'SEARCHING';
+            this.searchTimer = 110; // ~1.8 seconds look around
+          } else {
+            const targetAngle = Math.atan2(this.investigateTarget.y - this.y, this.investigateTarget.x - this.x);
+            this.rotateTowards(targetAngle, 0.1);
+            this.moveForward(this.investigateSpeed, currentWalls);
+          }
+        } 
+        else if (this.state === 'SEARCHING') {
+          this.searchTimer--;
+          // Sweep vision cone left and right to inspect
+          this.lookSweep += 0.06;
+          this.angle += Math.sin(this.lookSweep) * 0.04;
+
+          if (this.searchTimer <= 0) {
+            // Return to nearest waypoint on patrol
+            this.returnToPatrol();
+          }
+        }
+      }
+
+      rotateTowards(targetAngle, rate) {
+        let diff = targetAngle - this.angle;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        this.angle += diff * rate;
+      }
+
+      moveForward(spd, currentWalls) {
+        this.x += Math.cos(this.angle) * spd;
+        this.y += Math.sin(this.angle) * spd;
+
+        // Resolve wall collisions
+        for (const wall of currentWalls) {
+          resolveCircleBoxCollision(this, wall);
+        }
+      }
+
+      hearNoise(soundX, soundY) {
+        this.state = 'INVESTIGATING';
+        this.investigateTarget = { x: soundX, y: soundY };
+        playSfx('alert');
+      }
+
+      returnToPatrol() {
+        // Find closest waypoint
+        let closestIndex = 0;
+        let minDist = Infinity;
+        for (let i = 0; i < this.waypoints.length; i++) {
+          const d = distance(this.x, this.y, this.waypoints[i].x, this.waypoints[i].y);
+          if (d < minDist) {
+            minDist = d;
+            closestIndex = i;
+          }
+        }
+        this.currentWaypointIndex = closestIndex;
+        this.state = 'PATROL';
+        this.investigateTarget = null;
+      }
+
+      // Check if player is inside this guard's vision cone (blocked by walls)
+      canSeePlayer(p, currentWalls) {
+        const dist = distance(this.x, this.y, p.x, p.y);
+        if (dist > this.visionDistance) return false;
+
+        const angleToPlayer = Math.atan2(p.y - this.y, p.x - this.x);
+        let diff = angleToPlayer - this.angle;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+
+        if (Math.abs(diff) > this.visionAngle / 2) return false;
+
+        // Line-of-sight raycast check against all walls
+        return !lineIntersectsWalls(this.x, this.y, p.x, p.y, currentWalls);
+      }
+    }
+
+    // Shockwave ripples for sound
+    const shockwaves = [];
+    function spawnShockwave(x, y, maxR) {
+      shockwaves.push({ x, y, currentR: 10, maxR: maxR, alpha: 0.85 });
+    }
+
+    /* ==========================================================================
+       5. LEVEL LAYOUTS & DESIGN (3 MANSION WINGS)
+       ========================================================================== */
+    const LEVELS = [
+      // -------------------------------------------------------------
+      // LEVEL 1: The Grand Foyer & East Wing (1 Guard)
+      // -------------------------------------------------------------
+      {
+        name: "Wing 1: The Grand Foyer",
+        playerStart: { x: 90, y: 510 },
+        loot: { x: 860, y: 110, collected: false, name: "The Royal Sapphire" },
+        exit: { x: 80, y: 100, w: 48, h: 48, unlocked: false },
+        walls: [
+          // Outer mansion perimeter
+          { x: 0, y: 0, w: CANVAS_WIDTH, h: 20 },
+          { x: 0, y: CANVAS_HEIGHT - 20, w: CANVAS_WIDTH, h: 20 },
+          { x: 0, y: 0, w: 20, h: CANVAS_HEIGHT },
+          { x: CANVAS_WIDTH - 20, y: 0, w: 20, h: CANVAS_HEIGHT },
+
+          // Interior room dividers & pillars
+          { x: 200, y: 110, w: 22, h: 360 }, // Left divider with top/bottom gaps
+          { x: 420, y: 20, w: 22, h: 240 },  // Center-upper divider
+          { x: 420, y: 350, w: 22, h: 230 }, // Center-lower divider
+          { x: 670, y: 130, w: 22, h: 340 }, // East wing barrier
+          { x: 300, y: 250, w: 40, h: 40 },  // Pillar 1
+          { x: 550, y: 250, w: 40, h: 40 }   // Pillar 2
+        ],
+        guards: [
+          new Guard([
+            { x: 540, y: 100 },
+            { x: 540, y: 490 },
+            { x: 790, y: 490 },
+            { x: 790, y: 220 }
+          ], 1.4)
+        ]
+      },
+
+      // -------------------------------------------------------------
+      // LEVEL 2: The Royal Library & Conservatory (2 Guards)
+      // -------------------------------------------------------------
+      {
+        name: "Wing 2: The Royal Library",
+        playerStart: { x: 80, y: 300 },
+        loot: { x: 870, y: 300, collected: false, name: "The Emerald Codex" },
+        exit: { x: 80, y: 520, w: 48, h: 48, unlocked: false },
+        walls: [
+          // Outer perimeter
+          { x: 0, y: 0, w: CANVAS_WIDTH, h: 20 },
+          { x: 0, y: CANVAS_HEIGHT - 20, w: CANVAS_WIDTH, h: 20 },
+          { x: 0, y: 0, w: 20, h: CANVAS_HEIGHT },
+          { x: CANVAS_WIDTH - 20, y: 0, w: 20, h: CANVAS_HEIGHT },
+
+          // Bookshelf corridors and archways
+          { x: 190, y: 70, w: 22, h: 200 },
+          { x: 190, y: 330, w: 22, h: 210 },
+          { x: 370, y: 140, w: 180, h: 22 },
+          { x: 370, y: 430, w: 180, h: 22 },
+          { x: 650, y: 70, w: 22, h: 190 },
+          { x: 650, y: 340, w: 22, h: 200 },
+          { x: 460, y: 235, w: 24, h: 130 } // Central display exhibit
+        ],
+        guards: [
+          new Guard([
+            { x: 280, y: 110 },
+            { x: 280, y: 480 },
+            { x: 480, y: 480 },
+            { x: 480, y: 110 }
+          ], 1.45),
+          new Guard([
+            { x: 760, y: 480 },
+            { x: 760, y: 110 },
+            { x: 560, y: 110 },
+            { x: 560, y: 480 }
+          ], 1.5)
+        ]
+      },
+
+      // -------------------------------------------------------------
+      // LEVEL 3: The Master Vault & Gallery (3 Guards)
+      // -------------------------------------------------------------
+      {
+        name: "Wing 3: The Master Vault",
+        playerStart: { x: 70, y: 80 },
+        loot: { x: 480, y: 295, collected: false, name: "The Crown of Whispers" },
+        exit: { x: 890, y: 520, w: 48, h: 48, unlocked: false },
+        walls: [
+          // Outer perimeter
+          { x: 0, y: 0, w: CANVAS_WIDTH, h: 20 },
+          { x: 0, y: CANVAS_HEIGHT - 20, w: CANVAS_WIDTH, h: 20 },
+          { x: 0, y: 0, w: 20, h: CANVAS_HEIGHT },
+          { x: CANVAS_WIDTH - 20, y: 0, w: 20, h: CANVAS_HEIGHT },
+
+          // Central Vault Enclosure (has a doorway on North side at 440..520)
+          { x: 350, y: 190, w: 90, h: 22 },  // North wall left segment
+          { x: 520, y: 190, w: 90, h: 22 },  // North wall right segment
+          { x: 350, y: 390, w: 260, h: 22 }, // South wall
+          { x: 350, y: 190, w: 22, h: 220 }, // West wall
+          { x: 588, y: 190, w: 22, h: 220 }, // East wall
+
+          // Perimeter security walls
+          { x: 190, y: 20, w: 22, h: 230 },
+          { x: 190, y: 350, w: 22, h: 230 },
+          { x: 740, y: 20, w: 22, h: 240 },
+          { x: 740, y: 370, w: 22, h: 210 },
+          { x: 280, y: 90, w: 140, h: 20 },
+          { x: 540, y: 480, w: 140, h: 20 }
+        ],
+        guards: [
+          new Guard([
+            { x: 110, y: 130 },
+            { x: 110, y: 490 },
+            { x: 270, y: 490 },
+            { x: 270, y: 130 }
+          ], 1.5),
+          new Guard([
+            { x: 280, y: 140 },
+            { x: 670, y: 140 },
+            { x: 670, y: 450 },
+            { x: 280, y: 450 }
+          ], 1.6),
+          new Guard([
+            { x: 820, y: 130 },
+            { x: 820, y: 480 },
+            { x: 670, y: 300 }
+          ], 1.55)
+        ]
+      }
+    ];
+
+    let currentLevel = LEVELS[0];
+
+    function loadLevel(index) {
+      currentLevelIndex = index;
+      currentLevel = LEVELS[index];
+
+      // Reset level loot & exit
+      currentLevel.loot.collected = false;
+      currentLevel.exit.unlocked = false;
+
+      // Position player
+      player.reset(currentLevel.playerStart.x, currentLevel.playerStart.y);
+
+      // Reset guards
+      for (const guard of currentLevel.guards) {
+        guard.x = guard.waypoints[0].x;
+        guard.y = guard.waypoints[0].y;
+        guard.currentWaypointIndex = 0;
+        guard.state = 'PATROL';
+        guard.investigateTarget = null;
+      }
+
+      // Initial state on level start: STOPPED so thief does not automatically move!
+      // Default pace is SLOW ("okay" mode is normal)
+      isMoving = false;
+      speedPace = 'SLOW';
+      currentDirection = 'FRONT';
+      lastVoiceCommand = 'READY';
+      updateSpeedUI();
+
+      // Update HUD
+      hudLevelNum.innerText = `${currentLevelIndex + 1} / 3`;
+      hudObjectiveText.innerHTML = `&#9670; Steal ${currentLevel.loot.name}`;
+      hudObjectiveText.style.color = "var(--accent-gold)";
+    }
+
+    /* ==========================================================================
+       6. INPUT LISTENERS & CALIBRATION FLOW
+       ========================================================================== */
+    window.addEventListener('keydown', (e) => {
+      if (keys.hasOwnProperty(e.code)) {
+        keys[e.code] = true;
+      }
+      // Restart key 'R'
+      if (e.code === 'KeyR') {
+        if (gameState === GAME_STATES.LOSE || gameState === GAME_STATES.WIN) {
+          restartGame();
+        }
+      }
+      // Space key restart on lose screen
+      if (e.code === 'Space' && gameState === GAME_STATES.LOSE) {
+        restartGame();
+      }
+      // Shift key shout dash trigger (manual key alternative to vocal shout)
+      if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && shoutDashCooldown <= 0 && gameState === GAME_STATES.PLAYING) {
+        triggerShoutDash();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (keys.hasOwnProperty(e.code)) {
+        keys[e.code] = false;
+      }
+    });
+
+    // Speed Pace & Direction Interactive HUD Click Handlers
+    if (btnSpeedSlow) {
+      btnSpeedSlow.addEventListener('click', () => setSpeedPace('SLOW'));
+    }
+    if (btnSpeedFast) {
+      btnSpeedFast.addEventListener('click', () => setSpeedPace('FAST'));
+    }
+    if (btnSpeedFront) {
+      btnSpeedFront.addEventListener('click', () => applyVoiceDirection('FRONT'));
+    }
+    if (btnSpeedBack) {
+      btnSpeedBack.addEventListener('click', () => applyVoiceDirection('BACK'));
+    }
+    if (btnSpeedStop) {
+      btnSpeedStop.addEventListener('click', () => applyVoiceDirection('STOP'));
+    }
+
+    simVolumeSlider.addEventListener('input', (e) => {
+      simValLabel.innerText = parseFloat(e.target.value).toFixed(2);
+    });
+
+    const btnTestMic = document.getElementById('btn-test-mic');
+    if (btnTestMic) {
+      btnTestMic.addEventListener('click', async () => {
+        await initMicrophone();
+      });
+    }
+
+    if (btnToggleVideo) {
+      btnToggleVideo.addEventListener('click', toggleWebcamVideo);
+    }
+    if (btnToggleVideoTitle) {
+      btnToggleVideoTitle.addEventListener('click', toggleWebcamVideo);
+    }
+
+    // Companion Mouse Aim for Hands-Free Swimming (Voice Throttle)
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * (CANVAS_WIDTH / rect.width);
+      const mouseY = (e.clientY - rect.top) * (CANVAS_HEIGHT / rect.height);
+      if (gameState === GAME_STATES.PLAYING && !keys.ArrowUp && !keys.KeyW && !keys.ArrowDown && !keys.KeyS && !keys.ArrowLeft && !keys.KeyA && !keys.ArrowRight && !keys.KeyD) {
+        player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+      }
+    });
+
+    btnStart.addEventListener('click', async () => {
+      await initMicrophone();
+      startCalibration();
+    });
+
+    btnRestart.addEventListener('click', () => {
+      restartGame();
+    });
+
+    btnWinReplay.addEventListener('click', () => {
+      restartGame();
+    });
+
+    function startCalibration() {
+      gameState = GAME_STATES.CALIBRATING;
+      overlayTitle.classList.add('hidden');
+      overlayCalibration.classList.remove('hidden');
+
+      isCalibrating = true;
+      calibStartTime = performance.now();
+      calibrationSamples = [];
+    }
+
+    function finishCalibration() {
+      isCalibrating = false;
+      overlayCalibration.classList.add('hidden');
+
+      // Calculate baseline noise floor in Decibels (dBFS)
+      if (calibrationSamples.length > 0) {
+        const sum = calibrationSamples.reduce((a, b) => a + b, 0);
+        const avgDb = sum / calibrationSamples.length;
+        calibratedFloorDbfs = Math.min(-35.0, avgDb + 3.0);
+        calibratedCeilingDbfs = Math.max(calibratedFloorDbfs + 25.0, -12.0);
+      }
+
+      // Begin playing
+      gameState = GAME_STATES.PLAYING;
+      gameStartTime = performance.now();
+      loadLevel(0);
+    }
+
+    function restartGame() {
+      overlayLose.classList.add('hidden');
+      overlayWin.classList.add('hidden');
+      gameState = GAME_STATES.PLAYING;
+      gameStartTime = performance.now();
+      loadLevel(0);
+    }
+
+    /* ==========================================================================
+       7. MAIN UPDATE LOOP (STEALTH, SOUND, GUARDS, OBJECTIVES)
+       ========================================================================== */
+    function updateGame() {
+      // 1. Audio and Loudness Analysis
+      updateAudioAnalysis();
+
+      // UI: Live volume & decibels readout
+      const micPct = Math.round(scaledLoudness * 100);
+      if (titleMicBar) {
+        titleMicBar.style.width = `${Math.min(100, Math.round(smoothedVolume * 150))}%`;
+      }
+      if (hudNoiseFill) {
+        hudNoiseFill.style.width = `${micPct}%`;
+      }
+
+      // Live Decibel values readout
+      const dbText = `${smoothedDbfs.toFixed(1)} dB`;
+      if (hudDecibels) hudDecibels.innerText = dbText;
+      if (hudDbReadout) hudDbReadout.innerText = `${smoothedDbfs.toFixed(1)} dBFS`;
+      if (hudDbSpl) hudDbSpl.innerText = `(${currentSpl} dB SPL)`;
+      if (hudDbFloor) hudDbFloor.innerText = `Room Floor: ${calibratedFloorDbfs.toFixed(1)} dB`;
+      if (pipDbReadout) pipDbReadout.innerText = `${smoothedDbfs.toFixed(0)} dB`;
+
+      if (voiceCmdActiveTimer > 0) {
+        voiceCmdActiveTimer--;
+        if (voiceCmdActiveTimer === 0 && hudVoiceCmd) {
+          hudVoiceCmd.classList.remove('active');
+        }
+      }
+
+      if (hudNoiseStatus) {
+        if (scaledLoudness < 0.15) {
+          hudNoiseStatus.innerText = "Silent (Safe)";
+          hudNoiseStatus.style.color = "#10b981";
+        } else if (scaledLoudness < 0.50) {
+          hudNoiseStatus.innerText = "Whisper (Caution)";
+          hudNoiseStatus.style.color = "#38bdf8";
+        } else if (scaledLoudness < 0.78) {
+          hudNoiseStatus.innerText = "Speaking (Alert!)";
+          hudNoiseStatus.style.color = "#f59e0b";
+        } else {
+          hudNoiseStatus.innerText = "Shouting! (Loud Burst)";
+          hudNoiseStatus.style.color = "#ef4444";
+        }
+      }
+
+      // Calibration countdown tracking
+      if (gameState === GAME_STATES.CALIBRATING) {
+        const elapsed = performance.now() - calibStartTime;
+        const remaining = Math.max(0, (CALIBRATION_DURATION_MS - elapsed) / 1000);
+        calibCountdown.innerText = Math.ceil(remaining);
+        const progress = Math.min(100, (elapsed / CALIBRATION_DURATION_MS) * 100);
+        calibProgressBar.style.width = `${progress}%`;
+        calibSamplesCount.innerText = `${calibrationSamples.length} samples (${smoothedDbfs.toFixed(1)} dBFS)`;
+
+        if (elapsed >= CALIBRATION_DURATION_MS) {
+          finishCalibration();
+        }
+        return;
+      }
+
+      if (gameState !== GAME_STATES.PLAYING) return;
+
+      // Update Timer
+      gameElapsedTime = performance.now() - gameStartTime;
+      const totalSec = gameElapsedTime / 1000;
+      const minutes = Math.floor(totalSec / 60);
+      const seconds = (totalSec % 60).toFixed(1);
+      hudTimer.innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(4, '0')}`;
+      if (bestTimeMs) {
+        const bMin = Math.floor(bestTimeMs / 60000);
+        const bSec = ((bestTimeMs % 60000) / 1000).toFixed(1);
+        hudBestTime.innerText = `${String(bMin).padStart(2, '0')}:${String(bSec).padStart(4, '0')}`;
+      }
+
+      // Cooldown timers
+      if (shoutDashCooldown > 0) {
+        shoutDashCooldown--;
+        hudDashStatus.classList.remove('ready');
+        hudDashStatus.innerText = `DASH CD: ${(shoutDashCooldown / 60).toFixed(1)}s`;
+      } else {
+        hudDashStatus.classList.add('ready');
+        hudDashStatus.innerText = `SHOUT DASH READY`;
+      }
+
+      if (shoutDashActive > 0) {
+        shoutDashActive--;
+      }
+
+      // 2. Player Movement: Voice-Driven Hands-Free Movement + Keyboard Option!
+      let moveX = 0;
+      let moveY = 0;
+
+      if (keys.ArrowUp || keys.KeyW) moveY -= 1;
+      if (keys.ArrowDown || keys.KeyS) moveY += 1;
+      if (keys.ArrowLeft || keys.KeyA) moveX -= 1;
+      if (keys.ArrowRight || keys.KeyD) moveX += 1;
+
+      const isKeyboardMoving = (moveX !== 0 || moveY !== 0);
+
+      // Voice Propulsion Speed Calculation based on active speed pace:
+      // When isMoving is true:
+      // - speedPace === 'SLOW': 0.95 px/frame (stealth crawl, tiny noise radius, safe around guards - "okay" mode)
+      // - speedPace === 'FAST': 3.6 px/frame (sprint pace - "fast is learnable" persists across front/back)
+      // When isMoving is false: 0 px/frame (stopped)
+      let voiceSpeed = 0;
+      if (isMoving) {
+        if (speedPace === 'FAST') {
+          voiceSpeed = 3.6;
+        } else {
+          // 'SLOW' is the normal stealth crawl speed ("okay" pace)
+          voiceSpeed = 0.95;
+        }
+      }
+
+      // Shout Dash explosive burst speed
+      if (shoutDashActive > 0 && voiceSpeed > 0) {
+        voiceSpeed = 5.2;
+      }
+
+      if (isKeyboardMoving) {
+        // Keyboard movement
+        const len = Math.hypot(moveX, moveY);
+        moveX /= len;
+        moveY /= len;
+        const currentSpeed = shoutDashActive > 0 ? player.baseSpeed * 1.9 : (speedPace === 'SLOW' ? player.baseSpeed * 0.45 : player.baseSpeed * 1.5);
+        player.x += moveX * currentSpeed;
+        player.y += moveY * currentSpeed;
+        player.angle = Math.atan2(moveY, moveX);
+        player.swimAnim += (speedPace === 'SLOW' ? 0.1 : 0.25);
+        if (Math.floor(player.swimAnim) % 12 === 0) playSfx('step');
+      } else if (voiceSpeed > 0) {
+        // Voice-driven hands-free movement
+        player.x += Math.cos(player.angle) * voiceSpeed;
+        player.y += Math.sin(player.angle) * voiceSpeed;
+        player.swimAnim += (speedPace === 'SLOW' ? 0.08 : 0.2);
+        const stepRate = speedPace === 'SLOW' ? 24 : 14;
+        if (Math.floor(player.swimAnim) % stepRate === 0) playSfx('step');
+      }
+
+      // Resolve collisions with mansion walls
+      if (isKeyboardMoving || voiceSpeed > 0) {
+        for (const wall of currentLevel.walls) {
+          resolveCircleBoxCollision(player, wall);
+        }
+      }
+
+      // 3. Noise Radius Calculation
+      // Whispering or silence keeps radius tiny. Louder voice grows radius.
+      const baseRadius = 20;
+      const maxLoudRadius = 280;
+      let targetNoiseRadius = baseRadius + (scaledLoudness * (maxLoudRadius - baseRadius));
+
+      if (!isMoving) {
+        targetNoiseRadius = baseRadius;
+      } else if (speedPace === 'SLOW') {
+        // Slow stealth sneak: muffled noise, strictly capped so guards never hear!
+        targetNoiseRadius = Math.min(28, baseRadius + (scaledLoudness * 12));
+      }
+
+      // Shout Dash creates an expansive noise radius for a moment
+      if (shoutDashActive > 0) {
+        targetNoiseRadius = Math.max(targetNoiseRadius, 380);
+      }
+
+      // Smooth noise radius transition
+      player.noiseRadius += (targetNoiseRadius - player.noiseRadius) * 0.22;
+
+      // 4. Guards Update & Perception (Hearing + Sight)
+      let playerSpottedThisFrame = false;
+
+      for (const guard of currentLevel.guards) {
+        guard.update(currentLevel.walls);
+
+        // Check if guard HEARS the thief's noise
+        const distToPlayer = distance(guard.x, guard.y, player.x, player.y);
+        if (distToPlayer <= player.noiseRadius) {
+          // If guard isn't already investigating this location, alert them!
+          if (guard.state !== 'INVESTIGATING' || distance(guard.investigateTarget.x, guard.investigateTarget.y, player.x, player.y) > 40) {
+            guard.hearNoise(player.x, player.y);
+          }
+        }
+
+        // Check if guard SEES the thief in their vision cone
+        if (guard.canSeePlayer(player, currentLevel.walls)) {
+          playerSpottedThisFrame = true;
+        }
+      }
+
+      // 5. Spotted Meter Mechanics
+      if (playerSpottedThisFrame) {
+        // Fills slightly slower when sneaking slow in the shadows
+        const spotIncrement = speedPace === 'SLOW' ? 0.012 : 0.018;
+        player.spottedMeter += spotIncrement;
+        if (player.spottedMeter >= 1) {
+          player.spottedMeter = 1;
+          triggerLose();
+          return;
+        }
+      } else {
+        // Slowly drains when thief leaves cone
+        player.spottedMeter = Math.max(0, player.spottedMeter - 0.009);
+      }
+
+      // Update Spotted HUD
+      const spottedPct = Math.round(player.spottedMeter * 100);
+      hudSpottedFill.style.width = `${spottedPct}%`;
+      hudSpottedPct.innerText = `${spottedPct}%`;
+
+      // 6. Loot Collection Check
+      const loot = currentLevel.loot;
+      if (!loot.collected) {
+        if (distance(player.x, player.y, loot.x, loot.y) < player.radius + 20) {
+          loot.collected = true;
+          currentLevel.exit.unlocked = true;
+          playSfx('loot');
+
+          // Update HUD objective
+          hudObjectiveText.innerHTML = `&#10004; ${loot.name} Taken! Reach the Exit!`;
+          hudObjectiveText.style.color = "var(--accent-teal)";
+
+          // Burst of shockwave sparkles
+          spawnShockwave(loot.x, loot.y, 160);
+        }
+      }
+
+      // 7. Exit Trigger Check (Opens only after loot is taken)
+      const exit = currentLevel.exit;
+      if (exit.unlocked) {
+        const exitCenterX = exit.x + exit.w / 2;
+        const exitCenterY = exit.y + exit.h / 2;
+        if (distance(player.x, player.y, exitCenterX, exitCenterY) < player.radius + 22) {
+          advanceLevel();
+        }
+      }
+
+      // 8. Update active shockwaves
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.currentR += 7;
+        sw.alpha -= 0.03;
+        if (sw.alpha <= 0 || sw.currentR >= sw.maxR) {
+          shockwaves.splice(i, 1);
+        }
+      }
+    }
+
+    function advanceLevel() {
+      if (currentLevelIndex < 2) {
+        // Advance to next level
+        playSfx('loot');
+        loadLevel(currentLevelIndex + 1);
+      } else {
+        // Finished Level 3 -> WIN!
+        triggerWin();
+      }
+    }
+
+    function triggerLose() {
+      gameState = GAME_STATES.LOSE;
+      playSfx('caught');
+      overlayLose.classList.remove('hidden');
+    }
+
+    function triggerWin() {
+      gameState = GAME_STATES.WIN;
+      playSfx('win');
+
+      const totalMs = gameElapsedTime;
+      const totalSec = totalMs / 1000;
+      const min = Math.floor(totalSec / 60);
+      const sec = (totalSec % 60).toFixed(1);
+      const formattedTime = `${String(min).padStart(2, '0')}:${String(sec).padStart(4, '0')}`;
+
+      document.getElementById('win-time-val').innerText = formattedTime;
+
+      // Save Best Time in LocalStorage
+      let isNewRecord = false;
+      if (!bestTimeMs || totalMs < bestTimeMs) {
+        bestTimeMs = totalMs;
+        localStorage.setItem('wispr_fish_best_time', totalMs.toString());
+        isNewRecord = true;
+      }
+
+      const bMin = Math.floor(bestTimeMs / 60000);
+      const bSec = ((bestTimeMs % 60000) / 1000).toFixed(1);
+      document.getElementById('win-best-val').innerText = `${String(bMin).padStart(2, '0')}:${String(bSec).padStart(4, '0')}`;
+
+      const recordBanner = document.getElementById('win-record-banner');
+      if (isNewRecord) {
+        recordBanner.style.display = 'block';
+      } else {
+        recordBanner.style.display = 'none';
+      }
+
+      overlayWin.classList.remove('hidden');
+    }
+
+    /* ==========================================================================
+       8. RENDERING ENGINE (DARK MANSION, LIGHTING, VISION CONES, ENTITIES)
+       ========================================================================== */
+    function renderGame() {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // Floor pattern (Dark mansion tiles)
+      drawFloorTiles();
+
+      // Render Exit Door
+      drawExit(currentLevel.exit);
+
+      // Render Loot / Relic
+      drawLoot(currentLevel.loot);
+
+      // Render Mansion Walls
+      drawWalls(currentLevel.walls);
+
+      // Render Guard Vision Cones (Raycasted flashlight beams)
+      for (const guard of currentLevel.guards) {
+        drawGuardVision(guard, currentLevel.walls);
+      }
+
+      // Render Guards
+      for (const guard of currentLevel.guards) {
+        drawGuard(guard);
+      }
+
+      // Render Noise Radius circle around thief
+      drawNoiseRadius(player);
+
+      // Render Active Acoustic Shockwaves
+      drawShockwaves();
+
+      // Render Thief (Player)
+      drawPlayer(player);
+
+      // Render Soft Ambient Darkness & Light Aura around the Thief
+      drawLightingOverlay();
+    }
+
+    // Floor tile texture with subtle stone grid
+    function drawFloorTiles() {
+      ctx.fillStyle = "#090d16";
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.025)";
+      ctx.lineWidth = 1;
+      const tileSize = 40;
+
+      for (let x = 0; x < CANVAS_WIDTH; x += tileSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, CANVAS_HEIGHT);
+        ctx.stroke();
+      }
+      for (let y = 0; y < CANVAS_HEIGHT; y += tileSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(CANVAS_WIDTH, y);
+        ctx.stroke();
+      }
+    }
+
+    // Mansion Walls with shadow and bevel
+    function drawWalls(walls) {
+      for (const w of walls) {
+        // Drop shadow for depth
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.fillRect(w.x + 4, w.y + 4, w.w, w.h);
+
+        // Wall fill
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+
+        // Subtle decorative border
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.2)";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(w.x, w.y, w.w, w.h);
+
+        // Wall interior top highlight
+        ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.fillRect(w.x + 2, w.y + 2, w.w - 4, 3);
+      }
+    }
+
+    // Exit gate with locked / open states
+    function drawExit(exit) {
+      ctx.save();
+      const cx = exit.x + exit.w / 2;
+      const cy = exit.y + exit.h / 2;
+
+      if (!exit.unlocked) {
+        // Locked iron portcullis with red padlock indicator
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(exit.x, exit.y, exit.w, exit.h);
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(exit.x, exit.y, exit.w, exit.h);
+
+        // Bars
+        for (let i = exit.x + 8; i < exit.x + exit.w; i += 10) {
+          ctx.beginPath();
+          ctx.moveTo(i, exit.y);
+          ctx.lineTo(i, exit.y + exit.h);
+          ctx.stroke();
+        }
+
+        // Locked Padlock Icon
+        ctx.fillStyle = "#ef4444";
+        ctx.font = "bold 14px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("LOCK", cx, cy + 4);
+      } else {
+        // Unlocked glowing exit
+        const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, 35);
+        grad.addColorStop(0, "rgba(20, 184, 166, 0.9)");
+        grad.addColorStop(1, "rgba(20, 184, 166, 0)");
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#0f766e";
+        ctx.fillRect(exit.x, exit.y, exit.w, exit.h);
+        ctx.strokeStyle = "#2dd4bf";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(exit.x, exit.y, exit.w, exit.h);
+
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("EXIT", cx, cy + 4);
+      }
+      ctx.restore();
+    }
+
+    // Loot / Relic item
+    function drawLoot(loot) {
+      if (loot.collected) return;
+      ctx.save();
+      const time = performance.now() * 0.003;
+      const bob = Math.sin(time) * 3;
+
+      // Soft glow
+      const grad = ctx.createRadialGradient(loot.x, loot.y + bob, 2, loot.x, loot.y + bob, 24);
+      grad.addColorStop(0, "rgba(245, 158, 11, 0.8)");
+      grad.addColorStop(1, "rgba(245, 158, 11, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(loot.x, loot.y + bob, 26, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pedestal
+      ctx.fillStyle = "#475569";
+      ctx.beginPath();
+      ctx.ellipse(loot.x, loot.y + 12, 14, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gem shape (sapphire/emerald/crown)
+      ctx.fillStyle = "#f59e0b";
+      ctx.beginPath();
+      ctx.arc(loot.x, loot.y + bob, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Guard vision cone using raycasting against walls
+    function drawGuardVision(guard, walls) {
+      ctx.save();
+      const halfAngle = guard.visionAngle / 2;
+      const numRays = 42;
+      const step = guard.visionAngle / numRays;
+
+      ctx.beginPath();
+      ctx.moveTo(guard.x, guard.y);
+
+      for (let i = 0; i <= numRays; i++) {
+        const rayAngle = (guard.angle - halfAngle) + (i * step);
+        const rayEndX = guard.x + Math.cos(rayAngle) * guard.visionDistance;
+        const rayEndY = guard.y + Math.sin(rayAngle) * guard.visionDistance;
+
+        // Find closest wall intersection
+        let closestDist = guard.visionDistance;
+        let targetX = rayEndX;
+        let targetY = rayEndY;
+
+        for (const wall of walls) {
+          const l = wall.x, r = wall.x + wall.w, t = wall.y, b = wall.y + wall.h;
+          const edges = [
+            [l, t, r, t],
+            [r, t, r, b],
+            [r, b, l, b],
+            [l, b, l, t]
+          ];
+          for (const edge of edges) {
+            const hit = lineIntersection(guard.x, guard.y, rayEndX, rayEndY, edge[0], edge[1], edge[2], edge[3]);
+            if (hit) {
+              const d = distance(guard.x, guard.y, hit.x, hit.y);
+              if (d < closestDist) {
+                closestDist = d;
+                targetX = hit.x;
+                targetY = hit.y;
+              }
+            }
+          }
+        }
+
+        ctx.lineTo(targetX, targetY);
+      }
+
+      ctx.closePath();
+
+      // Vision cone coloring: yellow when searching, turns reddish when spotting
+      const isSpotting = guard.canSeePlayer(player, walls);
+      const grad = ctx.createRadialGradient(guard.x, guard.y, 10, guard.x, guard.y, guard.visionDistance);
+
+      if (isSpotting) {
+        grad.addColorStop(0, "rgba(239, 68, 68, 0.45)");
+        grad.addColorStop(1, "rgba(239, 68, 68, 0.05)");
+      } else {
+        grad.addColorStop(0, "rgba(250, 204, 21, 0.28)");
+        grad.addColorStop(1, "rgba(250, 204, 21, 0.02)");
+      }
+
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Guard body and flashlight source
+    function drawGuard(guard) {
+      ctx.save();
+      ctx.translate(guard.x, guard.y);
+      ctx.rotate(guard.angle);
+
+      // Guard shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.beginPath();
+      ctx.arc(2, 2, guard.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Guard Armor Body
+      ctx.fillStyle = "#334155";
+      ctx.beginPath();
+      ctx.arc(0, 0, guard.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Shoulder pads / visor
+      ctx.fillStyle = "#475569";
+      ctx.fillRect(-6, -guard.radius, 12, guard.radius * 2);
+
+      // Flashlight holder in front
+      ctx.fillStyle = "#facc15";
+      ctx.fillRect(8, -4, 8, 8);
+
+      // Visor / eyes
+      ctx.fillStyle = guard.state === 'INVESTIGATING' ? "#f97316" : "#38bdf8";
+      ctx.beginPath();
+      ctx.arc(4, 0, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // If Investigating, draw a soft alert mark '?' over head
+      if (guard.state === 'INVESTIGATING' || guard.state === 'SEARCHING') {
+        ctx.save();
+        ctx.fillStyle = "#f97316";
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("?", guard.x, guard.y - guard.radius - 8);
+        ctx.restore();
+      }
+    }
+
+    // Soft circle around thief showing current noise radius
+    function drawNoiseRadius(p) {
+      ctx.save();
+      const r = p.noiseRadius;
+
+      // Concentric pulsating noise wave
+      const grad = ctx.createRadialGradient(p.x, p.y, p.radius, p.x, p.y, r);
+      if (scaledLoudness > 0.75) {
+        // Loud burst / shouting color
+        grad.addColorStop(0, "rgba(239, 68, 68, 0.2)");
+        grad.addColorStop(0.7, "rgba(239, 68, 68, 0.1)");
+        grad.addColorStop(1, "rgba(239, 68, 68, 0)");
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.5)";
+      } else {
+        // Normal whisper / voice color
+        grad.addColorStop(0, "rgba(56, 189, 248, 0.15)");
+        grad.addColorStop(0.7, "rgba(56, 189, 248, 0.08)");
+        grad.addColorStop(1, "rgba(56, 189, 248, 0)");
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+      }
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawShockwaves() {
+      ctx.save();
+      for (const sw of shockwaves) {
+        ctx.strokeStyle = `rgba(56, 189, 248, ${sw.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.currentR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Thief (Wispr Fish character)
+    function drawPlayer(p) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+
+      // Drop shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.beginPath();
+      ctx.ellipse(2, 2, p.radius, p.radius * 0.75, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Fish tail wiggle
+      const tailWiggle = Math.sin(p.swimAnim) * 5;
+      ctx.fillStyle = "#0284c7";
+      ctx.beginPath();
+      ctx.moveTo(-p.radius + 2, 0);
+      ctx.lineTo(-p.radius - 8, -6 + tailWiggle);
+      ctx.lineTo(-p.radius - 8, 6 + tailWiggle);
+      ctx.closePath();
+      ctx.fill();
+
+      // Stealth Fish Body
+      const bodyGrad = ctx.createLinearGradient(-p.radius, 0, p.radius, 0);
+      bodyGrad.addColorStop(0, "#0369a1");
+      bodyGrad.addColorStop(1, "#38bdf8");
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.radius, p.radius * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Stealth Hood / Mask
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.arc(-2, 0, p.radius * 0.65, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bioluminescent glowing eye
+      ctx.fillStyle = "#f0fdf4";
+      ctx.beginPath();
+      ctx.arc(5, -3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      // Draw spotted warning meter floating above player if spotted > 0
+      if (p.spottedMeter > 0) {
+        ctx.save();
+        const barW = 36;
+        const barH = 5;
+        const bx = p.x - barW / 2;
+        const by = p.y - p.radius - 12;
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(bx, by, barW, barH);
+
+        ctx.fillStyle = p.spottedMeter > 0.75 ? "#ef4444" : "#f59e0b";
+        ctx.fillRect(bx, by, barW * p.spottedMeter, barH);
+        ctx.restore();
+      }
+    }
+
+    // Soft light around the theme and atmospheric dark vignette
+    function drawLightingOverlay() {
+      ctx.save();
+      // Create radial cutout around player
+      const ambientLight = ctx.createRadialGradient(player.x, player.y, 40, player.x, player.y, 360);
+      ambientLight.addColorStop(0, "rgba(0, 0, 0, 0)");
+      ambientLight.addColorStop(0.7, "rgba(5, 8, 14, 0.45)");
+      ambientLight.addColorStop(1, "rgba(5, 8, 14, 0.88)");
+
+      ctx.fillStyle = ambientLight;
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      ctx.restore();
+    }
+
+    /* ==========================================================================
+       9. MAIN ENGINE ANIMATION LOOP
+       ========================================================================== */
+    function gameLoop() {
+      updateGame();
+      renderGame();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start rendering loop on page load
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
